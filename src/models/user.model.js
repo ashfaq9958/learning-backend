@@ -1,7 +1,8 @@
-import jwt from "jsonwebtoken";
-import { Schema, model } from "mongoose";
+import { Schema, model, models } from "mongoose";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
+// User schema definition
 const userSchema = new Schema(
   {
     username: {
@@ -18,12 +19,14 @@ const userSchema = new Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      match: [/.+\@.+\..+/, "Please fill a valid email address"],
     },
     password: {
       type: String,
       required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
     },
-    fullName: {
+    fullname: {
       type: String,
       required: true,
       trim: true,
@@ -35,6 +38,7 @@ const userSchema = new Schema(
     },
     coverImage: {
       type: String, // Cloudinary URL
+      default: "",
     },
     watchHistory: [
       {
@@ -44,50 +48,52 @@ const userSchema = new Schema(
     ],
     refreshToken: {
       type: String,
+      default: "",
     },
   },
   { timestamps: true }
 );
 
-// ✅ Hash password before saving
+// Pre-save hook to hash password
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 10); // 🔁 Added `await`
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-// ✅ Compare password
+// Instance method to compare passwords
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-// ✅ Generate Access Token
+// Generate access token
 userSchema.methods.generateAccessToken = function () {
+  const secret = process.env.ACCESS_TOKEN_SECRET;
+  const expiry = process.env.ACCESS_TOKEN_EXPIRY || "1d";
+
+  if (!secret) throw new Error("Missing ACCESS_TOKEN_SECRET");
+
   return jwt.sign(
     {
       id: this._id,
       username: this.username,
       email: this.email,
-      fullName: this.fullName,
+      fullname: this.fullname,
     },
-    process.env.ACCESS_TOKEN_SECRET,
-    {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
-    }
+    secret,
+    { expiresIn: expiry }
   );
 };
 
-// ✅ Generate Refresh Token
+// Generate refresh token
 userSchema.methods.generateRefreshToken = function () {
-  return jwt.sign(
-    {
-      id: this._id,
-    },
-    process.env.REFRESH_TOKEN_SECRET,
-    {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
-    }
-  );
+  const secret = process.env.REFRESH_TOKEN_SECRET;
+  const expiry = process.env.REFRESH_TOKEN_EXPIRY || "7d";
+
+  if (!secret) throw new Error("Missing REFRESH_TOKEN_SECRET");
+
+  return jwt.sign({ id: this._id }, secret, { expiresIn: expiry });
 };
 
-export const User = model("User", userSchema);
+// Export model
+export const User = models.User || model("User", userSchema);
