@@ -4,7 +4,7 @@ import multer from "multer";
 const storage = multer.diskStorage({
   // Set the destination folder where files will be temporarily stored
   destination: function (req, file, cb) {
-    cb(null, "../../public/temp"); // Make sure this path exists
+    cb(null, "./public/temp"); // Make sure this path exists
   },
 
   // Generate a unique filename using the field name and a timestamp

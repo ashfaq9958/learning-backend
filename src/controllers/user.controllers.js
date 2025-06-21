@@ -5,6 +5,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import uploadOnCloudinary from "../utils/cloudinary.config.js";
 
 const registerUser = asyncHandler(async (req, res) => {
+  console.log("requesttttt:", req);
   const { fullname, email, password, username } = req.body;
 
   // 🚫 Check if required fields are present
