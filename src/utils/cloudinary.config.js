@@ -10,7 +10,7 @@ cloudinary.config({
 });
 
 // Cloudinary Upload Utility
-const uploadOnCloudinary = async (localFilePath) => {
+export const uploadOnCloudinary = async (localFilePath) => {
   try {
     // 🧾 Check if file path exists
     if (!localFilePath) return null;
@@ -38,4 +38,17 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 };
 
-export default uploadOnCloudinary;
+export const deleteFromCloudinary = async (fileUrl) => {
+  try {
+    if (!fileUrl) return null;
+
+    // Extract the public ID from the Cloudinary URL
+    const publicId = fileUrl.split("/").pop().split(".")[0];
+
+    const result = await cloudinary.uploader.destroy(publicId);
+    return result; // usually returns { result: "ok" }
+  } catch (error) {
+    console.error("❌ Cloudinary delete error:", error.message);
+    return null;
+  }
+};
